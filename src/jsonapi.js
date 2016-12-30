@@ -3,6 +3,7 @@ import 'fetch-everywhere';
 import imm from 'object-path-immutable';
 
 import {
+  addLinksToState,
   removeResourceFromState,
   updateOrInsertResourcesIntoState,
   setIsInvalidatingForExistingResource
@@ -309,15 +310,17 @@ export const reducer = handleActions({
   },
 
   [API_READ]: (state, { payload }) => {
+    const primaryData = Array.isArray(payload.data) ? payload.data : [payload.data];
     const resources = (
-      Array.isArray(payload.data)
-        ? payload.data
-        : [payload.data]
+      primaryData
     ).concat(payload.included || []);
 
-    const newState = updateOrInsertResourcesIntoState(state, resources);
+    const resourcedState = updateOrInsertResourcesIntoState(state, resources);
 
-    return imm(newState)
+    const links = payload.links;
+    const linkedState = addLinksToState(resourcedState, links, primaryData);
+
+    return imm(linkedState)
       .set('isReading', state.isReading - 1)
       .value();
   },
